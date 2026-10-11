@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Моя планета</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--a:#7c5cff;--b:#35d0ff;--t:#eef1ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:radial-gradient(ellipse at 30% 20%,#2a1b5e,#0a0c24 60%,#04050f);color:var(--t);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:none}
+.view{position:fixed;inset:0;overflow-y:auto;padding:20px;display:none;text-align:center}
+.view.on{display:block}.wrap{max-width:560px;margin:0 auto}
+h1{font-size:clamp(34px,9vw,60px);margin:6vh 0 6px;letter-spacing:2px}
+.sub{font-size:clamp(16px,4.4vw,22px);opacity:.85;margin-bottom:26px}
+button,.btn{font:inherit;font-size:18px;color:#fff;border:0;border-radius:999px;padding:14px 24px;margin:6px;background:linear-gradient(135deg,var(--a),var(--b));cursor:pointer;box-shadow:0 6px 24px #7c5cff55;transition:transform .2s}
+button:hover{transform:scale(1.05)}button.g{background:#ffffff1a;box-shadow:none}button.big{display:block;width:100%;margin:10px 0}
+.steps{margin-top:26px;text-align:left;background:#ffffff0f;border-radius:20px;padding:14px 20px;line-height:1.9}
+input,select{font:inherit;font-size:17px;width:100%;padding:12px 16px;border-radius:14px;border:1px solid #ffffff33;background:#ffffff14;color:#fff;margin:6px 0}
+option{color:#000}
+.card{background:#ffffff0f;border-radius:20px;padding:14px;margin:14px 0;text-align:left}
+.ui{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:0;right:0;display:none;justify-content:center;flex-wrap:wrap;z-index:5}
+.ui button{font-size:15px;padding:9px 16px}
+body.cls .ui{display:none!important}
+#x{position:fixed;top:10px;right:10px;display:none;opacity:.2;padding:8px 14px;z-index:6}body.cls #x{display:block}
+#tip{position:fixed;display:none;pointer-events:none;background:#0b0d2acc;border:1px solid #ffffff44;border-radius:16px;padding:10px 16px;z-index:7;backdrop-filter:blur(6px);text-align:left}
+#ttl{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-size:clamp(28px,7vw,64px);font-weight:700;pointer-events:none;z-index:6;text-shadow:0 0 30px #7c5cff;text-align:center;padding:20px}
+.modal{position:fixed;inset:0;background:#04051099;display:none;align-items:center;justify-content:center;z-index:20;padding:16px}.modal.on{display:flex}
+.box{background:#14163a;border-radius:24px;padding:20px;max-width:480px;width:100%;max-height:92%;overflow:auto;text-align:center}
+.box img,.box canvas{max-width:100%;border-radius:16px}
+#prev{width:220px;height:220px;border-radius:50%!important;box-shadow:0 0 40px #35d0ff88}
+#fly{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;background:#040510d9;font-size:24px;font-weight:700;padding:20px;text-align:center}
+#fly img{width:min(60vw,320px);height:min(60vw,320px);border-radius:50%;animation:fl 2.2s ease-in forwards;box-shadow:0 0 60px #35d0ff}
+@keyframes fl{0%{transform:scale(1);opacity:1}60%{transform:scale(1.1) rotate(8deg)}100%{transform:scale(.05) rotate(240deg) translateY(-200px);opacity:0}}
+.th{display:inline-block;width:64px;margin:4px;font-size:11px}.th img{width:64px;height:64px;border-radius:50%}
+.small{font-size:13px;opacity:.7}
+</style></head><body>
+<canvas id="gl"></canvas>
+
+<div class="view on" id="v-home"><div class="wrap">
+<h1>МОЯ ПЛАНЕТА 🚀</h1><div class="sub">Нарисуй свою планету — и отправь её в космос!</div>
+<button class="big" onclick="openGalaxy()">🌌 Открыть галактику</button>
+<button class="big g" onclick="go('teacher')">📷 Панель учителя</button>
+<div class="steps">1. Распечатай шаблон<br>→ 2. Нарисуй планету<br>→ 3. Отдай рисунок учителю<br>→ 4. Учитель фотографирует рисунок<br>→ 5. Планета появляется в космосе</div>
+</div></div>
+
+<div class="view" id="v-welcome"><div class="wrap">
+<h1>🚀</h1><div class="sub" style="font-size:28px">Добро пожаловать в галактику «Моя планета» 🚀</div>
+<div class="sub">Ваши планеты живут в космосе вашего учителя.</div>
+<button class="big" onclick="go('teacher')">🔑 Вход для учителя</button>
+</div></div>
+
+<div class="view" id="v-login"><div class="wrap">
+<h1 style="font-size:40px">👩‍🏫 Вход для учителя</h1>
+<div class="card"><input id="lgN" placeholder="Ваше имя, например: Анна Ивановна" autocomplete="username">
+<input id="lgP" type="password" placeholder="Пароль (минимум 4 символа)" autocomplete="current-password">
+<div id="lgM" class="small" style="min-height:20px"></div>
+<button class="big" onclick="auth(false)">🔑 Войти</button>
+<button class="big g" id="lgReg" style="display:none" onclick="auth(true)">✨ Создать мой кабинет с этим паролем</button>
+<div class="small" id="lgSt"></div><div class="small">Первый раз? Введите имя и придумайте пароль, затем нажмите «Войти»: сайт предложит создать кабинет.</div></div>
+<button class="g" onclick="go('home')">← Назад</button></div></div>
+
+<div class="view" id="v-cab"><div class="wrap">
+<h2>👩‍🏫 Кабинет: <span id="who"></span></h2>
+<button class="big" onclick="$('file').click()">📷 Добавить рисунки</button>
+<input type="file" id="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+<input type="file" id="cam" accept="image/*" capture="environment" hidden>
+<button class="big g" onclick="$('cam').click()">📸 Сфотографировать камерой</button>
+<button class="big g" onclick="showTpl()">🖨️ Скачать шаблон (мой личный QR)</button>
+<button class="big g" onclick="openGalaxy()">🌌 Открыть галактику</button>
+<div><button class="g" onclick="paused=true">⏸️ Пауза</button><button class="g" onclick="paused=false">▶️ Запустить анимацию</button></div>
+<div class="card"><b>Мои планеты (<span id="cnt">0</span>)</b><div id="list"></div></div>
+<button class="g" onclick="go('home')">← Меню</button><button class="g" onclick="logout()">Выйти</button>
+</div></div>
+
+<div class="ui" id="ui">
+<button class="g" onclick="go('home')">← Меню</button>
+<button class="g" onclick="paused=!paused">⏯️ Пауза</button>
+<button onclick="classMode(true)">🖥️ Режим класса</button>
+<button onclick="present()">✨ Запустить презентацию</button></div>
+<button class="g" id="x" onclick="classMode(false)">✕</button>
+<div id="tip"></div><div id="ttl"></div>
+
+<div class="modal" id="m-rev"><div class="box">
+<div id="revT" class="small"></div>
+<img id="prev"><input id="inCr" placeholder="Имя ученика (необязательно)"><input id="inNm" placeholder="Название планеты (необязательно)">
+<button class="big" onclick="saveCur()">🚀 Отправить в космос</button>
+<button class="big g" onclick="manual()">✋ Выделить круг вручную</button>
+<button class="big g" onclick="skipCur()">Пропустить</button></div></div>
+
+<div class="modal" id="m-ed"><div class="box">
+<b>Выберите область планеты</b><div class="small">Нажмите в центр круга и потяните до его края</div>
+<canvas id="ed" style="touch-action:none;margin:10px 0"></canvas>
+<button class="big" onclick="edOk()">Готово</button></div></div>
+
+<div class="modal" id="m-tpl"><div class="box">
+<img id="tplImg"><div class="small">Печать: формат A4, масштаб 100%</div>
+<button class="big" onclick="dlTpl()">⬇️ Сохранить файл</button>
+<button class="big g" onclick="$('m-tpl').classList.remove('on')">Закрыть</button></div></div>
+<div id="fly"><img id="flyI"><div style="margin-top:20px">Вот мой рисунок — теперь он живёт в космосе!</div></div>
+<div id="qrtmp" style="position:absolute;left:-9999px"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-auth-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* ===== ВСТАВЬТЕ СЮДА НАСТРОЙКИ FIREBASE (см. инструкцию), вместо null =====
+   Пример: const FIREBASE_CONFIG={apiKey:"...",authDomain:"...",projectId:"...",appId:"..."}; */
+const FIREBASE_CONFIG=null;
+const $=id=>document.getElementById(id);
+let fa=null;
+let db=null,cid=null,cls=null,planets=[],unsub=null,first=true,paused=false,cm=false,pres=null,curView='home';
+
+/* локальное хранилище (IndexedDB), если нет Claude */
+function localDb(){
+ const op=new Promise((res,rej)=>{const r=indexedDB.open('moyaplaneta',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+ const tx=async(m,f)=>{const d=await op;return new Promise((res,rej)=>{const t=d.transaction('kv',m),q=f(t.objectStore('kv'));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)})};
+ const get=async c=>(await tx('readonly',s=>s.get(c)))||{},subs={};
+ const snap=(m,ids)=>{const docs=ids.map(id=>({id,exists:true,data:()=>m[id]}));return{docs,size:docs.length,empty:!docs.length,docChanges:()=>docs.map(doc=>({type:'added',doc}))}};
+ const ref=(c,id)=>({id,async get(){const m=await get(c);return{id,exists:id in m,data:()=>m[id]}},
+  async set(o){const m=await get(c);m[id]=o;await tx('readwrite',s=>s.put(m,c));(subs[c]||[]).forEach(f=>f(snap(m,[id])))}});
+ return{local:true,collection:c=>({
+  doc:id=>ref(c,id),
+  async get(){const m=await get(c);return snap(m,Object.keys(m))},
+  where(f,op,v){return{async get(){const m=await get(c);return snap(m,Object.keys(m).filter(k=>m[k][f]===v))}}},
+  onSnapshot(cb){(subs[c]=subs[c]||[]).push(cb);get(c).then(m=>cb(snap(m,Object.keys(m).sort((a,b)=>m[a].created-m[b].created))));return()=>{subs[c]=subs[c].filter(f=>f!==cb)}}})};
+}
+const urlT=new URLSearchParams(location.search).get('t');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)),rnd=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>(x%36).toString(36)).join('');
+const sha=async t=>!(window.crypto&&crypto.subtle)?[...t].reduce((h,c)=>(h*31+c.charCodeAt(0))>>>0,7).toString(16):[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+function go(v){if(v==='teacher')v=cid?'cab':'login';curView=v;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));$('gl').style.display=v==='galaxy'?'block':'none';$('ui').style.display=v==='galaxy'?'flex':'none';if(v==='cab')renderT();}
+const isT=()=>!!cid;
+async function init(){
+ if(FIREBASE_CONFIG&&window.firebase){try{firebase.initializeApp(FIREBASE_CONFIG);fa=firebase.auth();db=firebase.firestore()}catch(e){fa=null;db=null}}
+ if(!db){try{db=await claude.use('db')}catch(e){}}
+ if(!db)db=localDb();
+ try{const ss=JSON.parse(localStorage.getItem('mp_s')||'null');if(ss&&db&&!fa){const d=await db.collection('teachers').doc(ss.id).get();if(d.exists)enter(ss.id,d.data().name,true)}}catch(e){}
+ if(fa)await new Promise(r=>fa.onAuthStateChanged(async u=>{if(u&&!cid){try{const d=await db.collection('teachers').doc(u.uid).get();if(d.exists)enter(u.uid,d.data().name,true)}catch(e){}}r()}));
+ if(db.local)$('lgSt').textContent='Сейчас данные хранятся только в этом браузере. Чтобы кабинет и планеты были на всех устройствах, подключите Firebase (инструкция в чате).';
+ if(urlT&&!cid)go('welcome');
+}
+async function auth(reg){
+ const name=$('lgN').value.trim(),pw=$('lgP').value,m=$('lgM');$('lgReg').style.display='none';
+ if(!name||pw.length<4){m.textContent='Введите имя и пароль (минимум 4 символа)';return}
+ if(fa){m.textContent='Проверяю…';return fbAuth(name,pw,reg,m)}
+ m.textContent='Проверяю…';
+ try{
+  const s=await db.collection('teachers').where('nameKey','==',name.toLowerCase()).get();
+  if(reg){
+   if(!s.empty){m.textContent='Это имя уже занято, добавьте фамилию или цифру';return}
+   const id=rnd(10),salt=rnd(12);
+   await db.collection('teachers').doc(id).set({name,nameKey:name.toLowerCase(),salt,hash:await sha(salt+pw),created:Date.now()});enter(id,name);
+  }else{
+   const d=s.docs[0];
+   if(!d){m.textContent='Такого учителя ещё нет. Хотите создать кабинет?';$('lgReg').style.display='block';return}
+   if(await sha(d.data().salt+pw)!==d.data().hash){m.textContent='Неверный пароль';return}
+   enter(d.id,d.data().name);
+  }
+ }catch(e){m.textContent='Ошибка: '+(e.message||e.code)}
+}
+async function fbAuth(name,pw,reg,m){
+ if(pw.length<6){m.textContent='Для общего хранилища пароль должен быть минимум 6 символов';return}
+ const email=(await sha(name.toLowerCase())).slice(0,40)+'@moyaplaneta.app';
+ try{
+  if(reg){const c=await fa.createUserWithEmailAndPassword(email,pw);await db.collection('teachers').doc(c.user.uid).set({name,created:Date.now()});enter(c.user.uid,name)}
+  else{const c=await fa.signInWithEmailAndPassword(email,pw);const d=await db.collection('teachers').doc(c.user.uid).get();enter(c.user.uid,d.exists?d.data().name:name)}
+ }catch(e){const c=e.code||'';
+  if(c==='auth/email-already-in-use')m.textContent='Это имя уже занято. Если это вы, нажмите «Войти»; если нет, добавьте фамилию.';
+  else if(/user-not-found|invalid-credential|wrong-password|invalid-login/.test(c)){m.textContent='Неверное имя или пароль. Если вы здесь впервые, создайте кабинет.';$('lgReg').style.display='block'}
+  else m.textContent='Ошибка: '+(e.message||c)}
+}
+function enter(id,name,quiet){
+ cid=id;cls={name};try{localStorage.setItem('mp_s',JSON.stringify({id}))}catch(e){}
+ if(unsub)unsub();clearPlanets();first=true;
+ unsub=db.collection(`teachers/${id}/planets`).onSnapshot(sn=>{
+  sn.docChanges().forEach(c=>{if(c.type==='added')addPlanet({id:c.doc.id,...c.doc.data()},!first)});
+  first=false;if(curView==='cab')renderT();
+ });
+ $('lgP').value='';if(!quiet)go('cab');
+}
+function logout(){if(fa)fa.signOut();if(unsub)unsub();unsub=null;cid=cls=null;clearPlanets();try{localStorage.removeItem('mp_s')}catch(e){}go('home')}
+function renderT(){
+ $('who').textContent=cls?cls.name:'';$('cnt').textContent=planets.length;
+ $('list').innerHTML=planets.map(p=>`<div class="th"><img src="${p.d.img}"><br>${esc(nm(p.d))}</div>`).join('')||'<span class="small">Пока пусто</span>';
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nm=d=>d.name||`Планета №${d.num}`;
+function openGalaxy(){if(!cid){go('teacher');return}go('galaxy');resize()}
+/* ---------- обработка фото ---------- */
+const QU=95/35,QV=150/35,QR=80/35;
+let queue=[],busy=false,curCv=null,curOut=null;
+$('file').onchange=e=>{enqueue([...e.target.files]);e.target.value=''};
+$('cam').onchange=e=>{enqueue([...e.target.files]);e.target.value=''};
+function enqueue(f){queue.push(...f);if(!busy)next()}
+async function next(){
+ busy=true;const f=queue.shift();
+ if(!f){busy=false;if(planets.length)openGalaxy();return}
+ const img=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=URL.createObjectURL(f)});
+ if(!img){next();return}
+ const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');
+ c.width=img.width*k|0;c.height=img.height*k|0;c.getContext('2d').drawImage(img,0,0,c.width,c.height);curCv=c;
+ const g=detect(c);
+ if(g&&g.tid!==cid){alert('Этот лист из другого кабинета (другой QR). Планета не добавлена.');next();return}
+ if(g)review(crop(c,g));else manual();
+}
+function detect(c){
+ try{const q=jsQR(c.getContext('2d').getImageData(0,0,c.width,c.height).data,c.width,c.height);if(!q)return null;
+ const L=q.location,T=L.topLeftCorner,R=L.topRightCorner,B=L.bottomLeftCorner,ex=[R.x-T.x,R.y-T.y],ey=[B.x-T.x,B.y-T.y];
+ const g={cx:T.x+ex[0]*QU+ey[0]*QV,cy:T.y+ex[1]*QU+ey[1]*QV,R:Math.hypot(...ex)*QR,th:Math.atan2(ex[1],ex[0])};
+ g.tid=(String(q.data).match(/[?&]t=([A-Za-z0-9]+)/)||[])[1];return g.tid&&g.R>20&&g.cx>0&&g.cy>0&&g.cx<c.width&&g.cy<c.height?g:null}catch(e){return null}
+}
+function crop(c,g){
+ const o=document.createElement('canvas');o.width=o.height=512;const x=o.getContext('2d');
+ x.fillStyle='#fff';x.fillRect(0,0,512,512);const k=256/(g.R*.95);
+ x.translate(256,256);x.scale(k,k);x.rotate(-g.th);x.translate(-g.cx,-g.cy);x.drawImage(c,0,0);return o;
+}
+function review(o){curOut=o;$('prev').src=o.toDataURL('image/jpeg',.85);$('inCr').value=$('inNm').value='';
+ $('revT').textContent=`Осталось в очереди: ${queue.length}`;$('m-rev').classList.add('on')}
+function skipCur(){$('m-rev').classList.remove('on');next()}
+async function saveCur(){
+ $('m-rev').classList.remove('on');
+ const id=Math.random().toString(36).slice(2,10),img=curOut.toDataURL('image/jpeg',.85);
+ try{await db.collection(`teachers/${cid}/planets`).doc(id).set({img,name:$('inNm').value.trim(),creator:$('inCr').value.trim(),created:Date.now(),num:planets.length+1})}
+ catch(e){alert('Не удалось сохранить: '+(e.message||e.code));next();return}
+ $('flyI').src=img;$('fly').style.display='flex';await sleep(2300);$('fly').style.display='none';next();
+}
+/* ручной редактор */
+let es={cx:0,cy:0,R:0,on:false};
+function manual(){
+ $('m-rev').classList.remove('on');const e=$('ed'),c=curCv,w=Math.min(440,innerWidth-70);
+ e.width=w;e.height=w*c.height/c.width;es={cx:e.width/2,cy:e.height/2,R:e.width/4};drawEd();$('m-ed').classList.add('on');
+}
+function drawEd(){const e=$('ed'),x=e.getContext('2d');x.drawImage(curCv,0,0,e.width,e.height);x.strokeStyle='#35d0ff';x.lineWidth=3;x.beginPath();x.arc(es.cx,es.cy,es.R,0,7);x.stroke()}
+const ed=$('ed');
+function ep(ev){const r=ed.getBoundingClientRect();return[(ev.clientX-r.left)*ed.width/r.width,(ev.clientY-r.top)*ed.height/r.height]}
+ed.onpointerdown=ev=>{[es.cx,es.cy]=ep(ev);es.R=5;es.on=true;ed.setPointerCapture(ev.pointerId);drawEd()};
+ed.onpointermove=ev=>{if(!es.on)return;const[x,y]=ep(ev);es.R=Math.max(5,Math.hypot(x-es.cx,y-es.cy));drawEd()};
+ed.onpointerup=()=>es.on=false;
+function edOk(){const k=curCv.width/ed.width;$('m-ed').classList.remove('on');review(crop(curCv,{cx:es.cx*k,cy:es.cy*k,R:es.R*k/.95,th:0}))}
+/* ---------- шаблон ---------- */
+let tplBlob=null;
+function showTpl(){
+ const link=(location.protocol==='file:'?location.href.split(/[?#]/)[0]:location.origin+location.pathname)+'?t='+cid,W=1240,H=1754,m=W/210,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+ x.fillStyle='#fff';x.fillRect(0,0,W,H);
+ const q=$('qrtmp');q.innerHTML='';new QRCode(q,{text:link,width:700,height:700,correctLevel:QRCode.CorrectLevel.M});
+ const qc=q.querySelector('canvas');x.drawImage(qc,10*m,10*m,35*m,35*m);
+ x.fillStyle='#111';x.textAlign='left';x.font=`bold ${9*m}px sans-serif`;x.fillText('МОЯ ПЛАНЕТА',54*m,26*m);
+ x.font=`${5*m}px sans-serif`;['1. Раскрась планету','2. Добавь всё, что хочешь','3. Отдай рисунок учителю'].forEach((t,i)=>x.fillText(t,54*m,(34+i*6.5)*m));
+ x.strokeStyle='#111';x.lineWidth=1.2*m;x.beginPath();x.arc(105*m,160*m,80*m,0,7);x.stroke();
+ x.textAlign='center';x.font=`${4*m}px sans-serif`;x.fillStyle='#777';x.fillText('Рисуй внутри круга 🪐 · '+(cls?cls.name:''),105*m,255*m+ 20*m*.0);
+ c.toBlob(b=>{tplBlob=b;$('tplImg').src=URL.createObjectURL(b);$('m-tpl').classList.add('on')});
+}
+async function dlTpl(){try{const d=await claude.use('downloads');if(d)await d.save({filename:'moya-planeta-shablon.png',data:tplBlob})}catch(e){}}
+/* ---------- 3D ---------- */
+const cv=$('gl'),ren=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true}),sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,1,.1,2000);
+ren.setPixelRatio(Math.min(devicePixelRatio,2));
+function resize(){ren.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener('resize',resize);
+function pts(n,rmin,rmax,size,color,op){const g=new THREE.BufferGeometry(),a=new Float32Array(n*3);
+ for(let i=0;i<n;i++){const r=rmin+Math.random()*(rmax-rmin),t=Math.random()*6.283,p=Math.acos(2*Math.random()-1);a.set([r*Math.sin(p)*Math.cos(t),r*Math.cos(p),r*Math.sin(p)*Math.sin(t)],i*3)}
+ g.setAttribute('position',new THREE.BufferAttribute(a,3));const p=new THREE.Points(g,new THREE.PointsMaterial({color,size,transparent:true,opacity:op,sizeAttenuation:false,depthWrite:false}));sc.add(p);return p}
+const stars=pts(2500,300,900,1.6,0xffffff,.9),dust=pts(350,15,70,2.2,0x9fd8ff,.5);
+sc.add(new THREE.AmbientLight(0x7788bb,.55));const sun=new THREE.PointLight(0xfff0dd,2.2,0,0);sc.add(sun);
+{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'#fff');g.addColorStop(.25,'#ffd98a');g.addColorStop(1,'#0000');x.fillStyle=g;x.fillRect(0,0,128,128);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.set(4,4,1);sc.add(s)}
+const ease=t=>{const c=1.70158+1;return 1+c*Math.pow(t-1,3)+1.70158*Math.pow(t-1,2)};
+function addPlanet(d,anim){
+ const i=planets.length,geo=new THREE.SphereGeometry(1,64,48),P=geo.attributes.position,U=geo.attributes.uv;
+ for(let k=0;k<P.count;k++)U.setXY(k,.5+P.getX(k)*.5,.5+P.getY(k)*.5);
+ const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:new THREE.TextureLoader().load(d.img),roughness:.85}));
+ mesh.add(new THREE.Mesh(new THREE.SphereGeometry(1.08,32,24),new THREE.MeshBasicMaterial({color:0x8fd0ff,transparent:true,opacity:.18,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false})));
+ const holder=new THREE.Group(),pivot=new THREE.Group(),r=7+i*2.3+Math.random()*.8;
+ pivot.rotation.set((Math.random()-.5)*.9,Math.random()*6.28,(Math.random()-.5)*.9);holder.add(mesh);pivot.add(holder);sc.add(pivot);
+ const p={d,mesh,holder,pivot,r,s:.9+Math.random()*.8,ang:Math.random()*6.28,orb:.45/Math.sqrt(r)*(.6+Math.random()*.8),spin:.1+Math.random()*.3,ap:(anim||pres)?0:1,hv:1,y:(Math.random()-.5)*3};
+ planets.push(p);if(pres)p.ap=0;mesh.userData.p=p;
+}
+function clearPlanets(){planets.forEach(p=>sc.remove(p.pivot));planets=[]}
+let T=0,last=performance.now(),camT=0;
+const comets=[];let nextC=4;
+function comet(){
+ const m=new THREE.Group(),h=new THREE.Mesh(new THREE.SphereGeometry(.25,12,12),new THREE.MeshBasicMaterial({color:0xffffff})),
+ t=new THREE.Mesh(new THREE.ConeGeometry(.22,9,10),new THREE.MeshBasicMaterial({color:0x8fd0ff,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}));
+ t.position.y=4.5;m.add(h);m.add(t);
+ const dir=new THREE.Vector3(Math.random()-.5,(Math.random()-.5)*.4,Math.random()-.5).normalize();
+ m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().negate());
+ m.position.copy(dir).multiplyScalar(-60).add(new THREE.Vector3((Math.random()-.5)*30,(Math.random()-.5)*20,(Math.random()-.5)*30));
+ sc.add(m);comets.push({m,v:dir.multiplyScalar(11),life:12});
+}
+let target=null;
+function loop(now){
+ requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
+ if(curView!=='galaxy')return;
+ if(!paused){T+=dt;stars.rotation.y+=dt*.004;dust.rotation.y+=dt*.01;dust.rotation.x+=dt*.003;
+  nextC-=dt;if(nextC<0){comet();nextC=7+Math.random()*9}
+  for(let i=comets.length-1;i>=0;i--){const c=comets[i];c.m.position.addScaledVector(c.v,dt);if((c.life-=dt)<0){sc.remove(c.m);comets.splice(i,1)}}
+  planets.forEach(p=>{p.ang+=p.orb*dt;p.mesh.rotation.y+=p.spin*dt});}
+ const K=cm?1.5:1;
+ planets.forEach(p=>{if(!paused&&p.ap<1)p.ap=Math.min(1,p.ap+dt*.7);
+  p.holder.position.set(Math.cos(p.ang)*p.r,p.y,Math.sin(p.ang)*p.r);
+  p.hv+=((hover===p?1.3:1)-p.hv)*Math.min(1,dt*8);
+  const sc_=p.s*K*p.hv*(p.ap>0?ease(p.ap):0);p.mesh.scale.setScalar(Math.max(.0001,sc_))});
+ const maxR=planets.length?planets[planets.length-1].r:10;
+ if(pres&&target){const w=new THREE.Vector3();target.holder.getWorldPosition(w);const off=w.clone().normalize().multiplyScalar(5).add(new THREE.Vector3(0,1.5,0));
+  cam.position.lerp(w.clone().add(off),dt*1.2);look.lerp(w,dt*2)}
+ else{camT+=paused?0:dt;const D=(maxR+14)*(cm?.75:1),a=camT*.04;
+  cam.position.lerp(new THREE.Vector3(Math.cos(a)*D,Math.sin(camT*.07)*7+5,Math.sin(a)*D),dt*1.5);look.lerp(new THREE.Vector3(),dt*2)}
+ cam.lookAt(look);ren.render(sc,cam);
+}
+const look=new THREE.Vector3();cam.position.set(0,6,30);
+requestAnimationFrame(loop);
+/* наведение */
+const ray=new THREE.Raycaster(),mp=new THREE.Vector2();let hover=null;
+function pick3(ev){mp.set(ev.clientX/innerWidth*2-1,-(ev.clientY/innerHeight)*2+1);ray.setFromCamera(mp,cam);
+ const h=ray.intersectObjects(planets.map(p=>p.mesh),false)[0];return h?h.object.userData.p:null}
+function tip(p,ev){const t=$('tip');if(!p){t.style.display='none';return}
+ const d=p.d;t.innerHTML=`🌍 <b>${esc(nm(d))}</b>${d.creator?`<br>Создатель: ${esc(d.creator)}`:''}<br>Дата: ${new Date(d.created).toLocaleDateString('ru-RU')}`;
+ t.style.display='block';t.style.left=Math.min(ev.clientX+16,innerWidth-220)+'px';t.style.top=Math.min(ev.clientY+16,innerHeight-110)+'px'}
+cv.addEventListener('pointermove',ev=>{hover=pick3(ev);tip(hover,ev)});
+cv.addEventListener('pointerdown',ev=>{hover=pick3(ev);tip(hover,ev);if(hover)setTimeout(()=>{if(hover===null)return;},0)});
+cv.addEventListener('pointerleave',()=>{hover=null;tip(null)});
+/* режимы */
+function classMode(on){cm=on;document.body.classList.toggle('cls',on);
+ if(on&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});
+ if(!on&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&cm)classMode(false)});
+async function present(){
+ if(!planets.length)return;paused=false;const list=[...planets].sort((a,b)=>a.d.created-b.d.created);
+ pres=true;target=null;planets.forEach(p=>p.ap=0);classMode(true);
+ const t=$('ttl');t.textContent='Добро пожаловать в нашу галактику!';t.style.display='flex';await sleep(4000);t.style.display='none';
+ for(const p of list){if(!pres)return;target=p;p.ap=.001;await sleep(5500)}
+ pres=null;target=null;
+}
+init();
+</script>
+</body></html>
